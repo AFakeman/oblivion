@@ -74,13 +74,25 @@ class TestBinaryParse(unittest.TestCase):
             ("unsigned long", "m"),
         ])
 
-        t = parser.parse_from_tuple("header", ("AAAA", 1, 2, 3, 4))
+        parser.register("record_body", [
+            ("char", "symbol"),
+            ("unsigned long", "length"),
+        ])
+        parser.register("record", [
+            ("header", "header"),
+            ("record_body", "body"),
+        ])
 
-        self.assertEqual(t.type, "AAAA")
-        self.assertEqual(t.size, 1)
-        self.assertEqual(t.flags, 2)
-        self.assertEqual(t.formid, 3)
-        self.assertEqual(t.m, 4)
+        t = parser.parse_from_tuple("record", ("AAAA", 1, 2, 3, 4, "a", 5))
+
+        self.assertEqual(t.header.type, "AAAA")
+        self.assertEqual(t.header.size, 1)
+        self.assertEqual(t.header.flags, 2)
+        self.assertEqual(t.header.formid, 3)
+        self.assertEqual(t.header.m, 4)
+
+        self.assertEqual(t.body.symbol, "a")
+        self.assertEqual(t.body.length, 5)
 
     def test_parse_from_binary(self):
         parser = BinaryParser()
