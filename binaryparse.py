@@ -84,7 +84,7 @@ class BinaryParser:
     # parse a given type from a bytes buffer
     def parse_from_bytes(self, type_name, buf):
         fmt = self.format_for_type(type_name)
-        tup = struct.unpack(buf, fmt)
+        tup = struct.unpack(fmt, buf)
         return self.parse_from_tuple(type_name, tup)
 
     # parse a given type from a tuple. mostly for internal use.

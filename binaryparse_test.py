@@ -106,15 +106,14 @@ class TestBinaryParse(unittest.TestCase):
             ("unsigned long", "m"),
         ])
 
-        packed = b'AAAA\x01\x02\x03\x04'
-        t = parser.parse_from_tuple("header", ("AAAA", 1, 2, 3, 4))
+        packed = b'AAAA\x01\x00\x00\x00\x02\x00\x00\x00\x03\x00\x00\x00\x04\x00\x00\x00'
+        t = parser.parse_from_bytes("header", packed)
 
-        self.assertEqual(t.type, "AAAA")
+        self.assertEqual(t.type, b"AAAA")
         self.assertEqual(t.size, 1)
         self.assertEqual(t.flags, 2)
         self.assertEqual(t.formid, 3)
         self.assertEqual(t.m, 4)
-
 
 
 if __name__ == "__main__":
