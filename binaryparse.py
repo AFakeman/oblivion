@@ -56,9 +56,11 @@ class BinaryParser:
         count = 1
         return sum(self.field_count(type) for type, name in self._fields[type_name])
 
+    # size of a type in bytes
     def sizeof(self, type_name):
         return struct.calcsize(self.format_for_type(type_name))
 
+    # turn our definition format into a struct format string
     def _generate_format(self, definition):
         format_list = [self._endian]
         for field_type, field_name in definition:
@@ -67,19 +69,25 @@ class BinaryParser:
             format_list.append(self._types[field_type])
         return "".join(format_list)
 
+    # return struct format for a type
     def format_for_type(self, type_name):
         if type_name not in self._types:
             raise ValueError("Type {} does not exist".format(type_name))
         return self._types[type_name]
 
+    # create a namedtuple class for a given type
     def _create_tuple_for_type(self, type_name):
+        if type_name not in self._types:
+            raise ValueError("Type {} does not exist".format(type_name))
         return namedtuple(self._prefix + type_name, [v for k, v in self._fields[type_name]])
 
+    # parse a given type from a bytes buffer
     def parse_from_bytes(self, type_name, buf):
         fmt = self.format_for_type(type_name)
         tup = struct.unpack(buf, fmt)
         return self.parse_from_tuple(type_name, tup)
 
+    # parse a given type from a tuple. mostly for internal use.
     def parse_from_tuple(self, type_name, tup):
         assert(len(tup) == self.field_count(type_name))
         if type_name not in self._types:
