@@ -1,20 +1,25 @@
 import sys
 
-from oblivion_types import Flags, oblivion_parser
+from oblivion_types import header
 
 FILENAME = sys.argv[1]
 
 with open(FILENAME, 'rb') as f:
-    while True:
-        header_bytes = f.read(oblivion_parser.sizeof("record_header"))
-        if header_bytes == b"":
-            break
+    esm = f.read()
 
-        header = oblivion_parser.parse_from_bytes("record_header", header_bytes)
+c = 0
 
-        flag_list = [ flag.name for flag in Flags if header.flags & flag.value ]
+while True:
+    s, result, rest = header(esm)
 
-        print("Record {}, {} bytes, {}".format(header.type.decode('ASCII'), header.size,
-            ", ".join(flag_list)))
+    if not s:
+        raise ValueError("?")
 
-        f.seek(header.size, 1)
+    print(result)
+
+    esm = rest[result.size:]
+
+    if c == 99:
+        break
+
+    c += 1

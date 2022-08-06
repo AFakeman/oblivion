@@ -2,7 +2,7 @@ import enum
 
 import binaryparse
 
-class Flags(enum.Enum):
+class HeaderFlags(enum.IntFlag):
     ESM_RECORD = 0x00000001
     DELETED = 0x00000020
     CASTS_SHADOWS = 0x00000200
@@ -14,23 +14,15 @@ class Flags(enum.Enum):
     COMPRESSED = 0x00040000
     CANT_WAIT = 0x00080000
 
+record_type = binaryparse.struct_parser("<4s")
+unsigned_long = binaryparse.struct_parser("<L")
 
-oblivion_parser = binaryparse.BinaryParser()
+header_flags = binaryparse.enum_parser(unsigned_long, HeaderFlags)
 
-RecordHeader = [
-        ("record_type", "type"),
-        ("unsigned long", "size"),
-        ("unsigned long", "flags"),
-        ("unsigned long", "formid"),
-        ("unsigned long", "m"),
-]
-
-GrupSubheader = [
-        ("record_type", "type"),
-        ("unsigned long", "size"),
-
-]
-
-oblivion_parser.typedef("record_type", "4s")
-
-oblivion_parser.register("record_header", RecordHeader)
+header = binaryparse.record_parser("header", (
+    ("type", record_type),
+    ("size", unsigned_long),
+    ("flags", header_flags),
+    ("formid", unsigned_long),
+    ("m", unsigned_long),
+))
