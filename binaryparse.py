@@ -70,7 +70,7 @@ def zstr_parser(encoding="ascii"):
     return parser
 
 
-def enum_parser(num_parser, enum):
+def flag_parser(num_parser, enum):
     def parser(bstr):
         s, result, rest = num_parser(bstr)
         if not s:
@@ -83,3 +83,14 @@ def enum_parser(num_parser, enum):
         return True, result, rest
 
     return parser
+
+def enum_parser(parser, enum):
+    def wrapper(bstr):
+        s, result, rem = parser(bstr)
+        if not s:
+            return s, result, rem
+
+        result = enum(result)
+
+        return s, result, rem
+    return wrapper

@@ -85,7 +85,7 @@ class TestBinaryParse(unittest.TestCase):
         self.assertEqual(result, 'test')
 
 
-    def test_enum_parser(self):
+    def test_flag_parser(self):
         class TestEnum(enum.IntFlag):
             R = 4
             W = 2
@@ -93,13 +93,29 @@ class TestBinaryParse(unittest.TestCase):
 
         packed = b'\x05\x00\x00\x00\x01'
 
-        c = enum_parser(struct_parser('<L'), TestEnum)
+        c = flag_parser(struct_parser('<L'), TestEnum)
 
         s, result, rest = c(packed)
 
         self.assertTrue(s)
         self.assertEqual(rest, b'\x01')
         self.assertEqual(result, {TestEnum.X, TestEnum.R})
+
+    def test_enum_parser(self):
+        class TestEnum(enum.Enum):
+            R = 4
+            W = 2
+            X = 1
+
+        packed = b'\x04\x00\x00\x00\x01'
+
+        c = enum_parser(struct_parser('<L'), TestEnum)
+
+        s, result, rest = c(packed)
+
+        self.assertTrue(s)
+        self.assertEqual(rest, b'\x01')
+        self.assertEqual(result, TestEnum.R)
 
 
 if __name__ == "__main__":
