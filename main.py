@@ -5,21 +5,17 @@ from oblivion_types import header
 FILENAME = sys.argv[1]
 
 with open(FILENAME, 'rb') as f:
-    esm = f.read()
+    while True:
+        header_bytes = f.read(20)
 
-c = 0
+        if not header_bytes:
+            break
 
-while True:
-    s, result, rest = header(esm)
+        s, result, rest = header(header_bytes)
 
-    if not s:
-        raise ValueError("?")
+        if not s:
+            raise ValueError("?")
 
-    print(result)
+        print(result)
 
-    esm = rest[result.size:]
-
-    if c == 99:
-        break
-
-    c += 1
+        f.seek(result.size, 1)
