@@ -1,6 +1,6 @@
 import sys
 
-from oblivion_types import header
+from oblivion_types import header, top_level, dial
 
 FILENAME = sys.argv[1]
 
@@ -11,11 +11,33 @@ with open(FILENAME, 'rb') as f:
         if not header_bytes:
             break
 
-        s, result, rest = header(header_bytes)
+        s, result, rest = top_level(header_bytes)
 
-        if not s:
-            raise ValueError("?")
+        assert(s)
 
         print(result)
 
-        f.seek(result.size, 1)
+        if result.type != 'GRUP':
+            f.seek(result.size, 1)
+            continue
+
+        if result.label != b'DIAL':
+            f.seek(result.size - 20, 1)
+            continue
+
+        data = f.read(result.size - 20)
+
+        while data:
+            s, hdr, data = top_level(data)
+            assert(s)
+
+            print(hdr)
+
+            if hdr.type == 'DIAL':
+                s, d, data = dial(data)
+                assert(s)
+                print(d)
+            elif hdr.type == 'GRUP':
+                data = data[hdr.size - 20:]
+            else:
+                data = data[hdr.size:]
