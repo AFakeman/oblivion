@@ -36,14 +36,19 @@ def str_parser(length, encoding="ascii"):
 
 
 # Record is a tuple or a list of two-tuples: field name and field parser
-def record_parser(record):
+def record_parser(record_name, record):
+    tpl = namedtuple(record_name, [field_name for field_name, _ in record])
+
     def parser(bstr):
-        result = {}
+        result = []
         for field_name, field_parser in record:
             success, field_value, bstr = field_parser(bstr)
             if not success:
                 return False, result, bstr
-            result[field_name] = field_value
+            result.append(field_value)
+
+        result = tpl._make(result)
+
         return True, result, bstr
 
     return parser

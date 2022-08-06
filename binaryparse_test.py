@@ -54,7 +54,7 @@ class TestBinaryParse(unittest.TestCase):
         record_type = struct_parser("<4s")
         unsigned_long = struct_parser("<L")
 
-        header = record_parser((
+        header = record_parser("header", (
             ("type", record_type),
             ("size", unsigned_long),
             ("flags", unsigned_long),
@@ -66,13 +66,11 @@ class TestBinaryParse(unittest.TestCase):
 
         self.assertTrue(s)
         self.assertEqual(rest, b'')
-        self.assertEqual(result, {
-            "type": b"AAAA",
-            "size": 1,
-            "flags": 2,
-            "formid": 3,
-            "m": 4,
-        })
+        self.assertEqual(result.type, b"AAAA")
+        self.assertEqual(result.size, 1)
+        self.assertEqual(result.flags, 2)
+        self.assertEqual(result.formid, 3)
+        self.assertEqual(result.m, 4)
 
 
     def test_zstr_parser_cp1252(self):
