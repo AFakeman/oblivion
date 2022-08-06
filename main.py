@@ -1,6 +1,6 @@
 import sys
 
-from oblivion_types import header, top_level, dial
+from oblivion_types import header, top_level, dial, info
 
 FILENAME = sys.argv[1]
 
@@ -38,6 +38,10 @@ with open(FILENAME, 'rb') as f:
                 assert(s)
                 print(d)
             elif hdr.type == 'GRUP':
+                s, h, buf = header(data)
+                print(h)
+                s, d, _ = info(buf)
+                print(d)
                 data = data[hdr.size - 20:]
             else:
                 data = data[hdr.size:]

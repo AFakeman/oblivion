@@ -84,6 +84,7 @@ def flag_parser(num_parser, enum):
 
     return parser
 
+
 def enum_parser(parser, enum):
     def wrapper(bstr):
         s, result, rem = parser(bstr)
@@ -94,3 +95,11 @@ def enum_parser(parser, enum):
 
         return s, result, rem
     return wrapper
+
+
+def skip_parser(length):
+    def parser(bstr):
+        if len(bstr) <= length:
+            return False, None, bstr
+        return True, bstr[:length], bstr[length:]
+    return parser
