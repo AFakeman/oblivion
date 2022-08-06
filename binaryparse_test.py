@@ -1,5 +1,7 @@
 import unittest
 
+import enum
+
 from binaryparse import *
 
 class TestBinaryParse(unittest.TestCase):
@@ -73,7 +75,7 @@ class TestBinaryParse(unittest.TestCase):
         })
 
 
-    def test_zstr_cp1252(self):
+    def test_zstr_parser_cp1252(self):
         packed = 'test'.encode('cp1252') + b'\0abc'
 
         c = zstr_parser('cp1252')
@@ -83,6 +85,23 @@ class TestBinaryParse(unittest.TestCase):
         self.assertTrue(s)
         self.assertEqual(rest, b'abc')
         self.assertEqual(result, 'test')
+
+
+    def test_enum_parser(self):
+        class TestEnum(enum.IntFlag):
+            R = 4
+            W = 2
+            X = 1
+
+        packed = b'\x05\x00\x00\x00\x01'
+
+        c = enum_parser(struct_parser('<L'), TestEnum)
+
+        s, result, rest = c(packed)
+
+        self.assertTrue(s)
+        self.assertEqual(rest, b'\x01')
+        self.assertEqual(result, {TestEnum.X, TestEnum.R})
 
 
 if __name__ == "__main__":

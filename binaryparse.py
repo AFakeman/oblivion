@@ -1,3 +1,4 @@
+import enum
 import struct
 from collections import namedtuple
 
@@ -61,4 +62,19 @@ def zstr_parser(encoding="ascii"):
         rest = bstr[len(result)+1:]
 
         return True, result, rest
+    return parser
+
+
+def enum_parser(num_parser, enum):
+    def parser(bstr):
+        s, result, rest = num_parser(bstr)
+        if not s:
+            return s, result, rest
+
+        assert(isinstance(result, int))
+
+        result = {v for v in enum if v.value & result}
+
+        return True, result, rest
+
     return parser
