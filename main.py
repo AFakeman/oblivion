@@ -1,7 +1,4 @@
 import sys
-import struct
-import enum
-from collections import namedtuple
 
 from oblivion_types import Flags, oblivion_parser
 

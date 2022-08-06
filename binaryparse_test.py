@@ -3,117 +3,86 @@ import unittest
 from binaryparse import *
 
 class TestBinaryParse(unittest.TestCase):
-    def test_typedef(self):
-        parser = BinaryParser()
-        parser.typedef("record_type", "4s")
-        self.assertEqual(parser.format_for_type("record_type"), "4s")
+    def test_struct_parser(self):
+        packed = b'AAAAB'
 
-    def test_register(self):
-        parser = BinaryParser()
+        c = struct_parser("<4s")
 
-        self.assertRaises(ValueError, parser.format_for_type, "header")
+        s, result, rest = c(packed)
 
-        parser.typedef("record_type", "4s")
-        parser.register("header", [
-            ("record_type", "type"),
-            ("unsigned long", "size"),
-            ("unsigned long", "flags"),
-            ("unsigned long", "formid"),
-            ("unsigned long", "m"),
-        ])
+        self.assertTrue(s)
+        self.assertEqual(result, b'AAAA')
+        self.assertEqual(rest, b'B')
 
-        self.assertEqual(parser.format_for_type("header"), "<4sLLLL")
+    def test_struct_parser_negative(self):
+        bad_packed = b'AAA'
 
-    def test_fieldcount(self):
-        parser = BinaryParser()
+        c = struct_parser("<4s")
 
-        self.assertRaises(ValueError, parser.field_count, "record")
+        s, result, rest = c(bad_packed)
+        self.assertFalse(s)
 
-        parser.typedef("record_type", "4s")
-        parser.register("header", [
-            ("record_type", "type"),
-            ("unsigned long", "size"),
-            ("unsigned long", "flags"),
-            ("unsigned long", "formid"),
-            ("unsigned long", "m"),
-        ])
 
-        parser.register("record_body", [
-            ("char", "symbol"),
-            ("unsigned long", "length"),
-        ])
-        parser.register("record", [
-            ("header", "header"),
-            ("record_body", "body"),
-        ])
-        self.assertEqual(parser.field_count("record"), 7)
+    def test_str_parser_ascii(self):
+        packed = b'AAAAB'
 
-    def test_sizeof(self):
-        parser = BinaryParser()
-        parser.typedef("record_type", "4s")
-        parser.typedef("description_type", "256s")
-        parser.typedef("name_type", "32s")
+        c = str_parser(4)
 
-        parser.register("record", [
-            ("record_type", "type"),
-            ("description_type", "description"),
-            ("name_type", "name"),
-        ])
+        s, result, rest = c(packed)
 
-        self.assertEqual(parser.sizeof("record"), 4 + 256 + 32)
+        self.assertTrue(s)
+        self.assertEqual(result, 'AAAA')
+        self.assertEqual(rest, b'B')
 
-    def test_parse_from_tuple(self):
-        parser = BinaryParser()
+    def test_str_parser_cp1252(self):
+        packed = 'test'.encode('cp1252') + b'a'
 
-        parser.typedef("record_type", "4s")
-        parser.register("header", [
-            ("record_type", "type"),
-            ("unsigned long", "size"),
-            ("unsigned long", "flags"),
-            ("unsigned long", "formid"),
-            ("unsigned long", "m"),
-        ])
+        c = str_parser(4, 'cp1252')
 
-        parser.register("record_body", [
-            ("char", "symbol"),
-            ("unsigned long", "length"),
-        ])
-        parser.register("record", [
-            ("header", "header"),
-            ("record_body", "body"),
-        ])
+        s, result, rest = c(packed)
 
-        t = parser.parse_from_tuple("record", ("AAAA", 1, 2, 3, 4, "a", 5))
+        self.assertTrue(s)
+        self.assertEqual(result, "test")
+        self.assertEqual(rest, b'a')
 
-        self.assertEqual(t.header.type, "AAAA")
-        self.assertEqual(t.header.size, 1)
-        self.assertEqual(t.header.flags, 2)
-        self.assertEqual(t.header.formid, 3)
-        self.assertEqual(t.header.m, 4)
 
-        self.assertEqual(t.body.symbol, "a")
-        self.assertEqual(t.body.length, 5)
-
-    def test_parse_from_binary(self):
-        parser = BinaryParser()
-
-        parser.typedef("record_type", "4s")
-        parser.register("header", [
-            ("record_type", "type"),
-            ("unsigned long", "size"),
-            ("unsigned long", "flags"),
-            ("unsigned long", "formid"),
-            ("unsigned long", "m"),
-        ])
-
+    def test_record_parser(self):
         packed = b'AAAA\x01\x00\x00\x00\x02\x00\x00\x00\x03\x00\x00\x00\x04\x00\x00\x00'
-        t = parser.parse_from_bytes("header", packed)
 
-        self.assertEqual(t.type, b"AAAA")
-        self.assertEqual(t.size, 1)
-        self.assertEqual(t.flags, 2)
-        self.assertEqual(t.formid, 3)
-        self.assertEqual(t.m, 4)
+        record_type = struct_parser("<4s")
+        unsigned_long = struct_parser("<L")
+
+        header = record_parser((
+            ("type", record_type),
+            ("size", unsigned_long),
+            ("flags", unsigned_long),
+            ("formid", unsigned_long),
+            ("m", unsigned_long),
+        ))
+
+        s, result, rest = header(packed)
+
+        self.assertTrue(s)
+        self.assertEqual(rest, b'')
+        self.assertEqual(result, {
+            "type": b"AAAA",
+            "size": 1,
+            "flags": 2,
+            "formid": 3,
+            "m": 4,
+        })
+
+
+    def test_zstr_cp1252(self):
+        packed = 'test'.encode('cp1252') + b'\0abc'
+
+        c = zstr_parser('cp1252')
+
+        s, result, rest = c(packed)
+
+        self.assertTrue(s)
+        self.assertEqual(rest, b'abc')
+        self.assertEqual(result, 'test')
 
 
 if __name__ == "__main__":

@@ -25,6 +25,12 @@ RecordHeader = [
         ("unsigned long", "m"),
 ]
 
+GrupSubheader = [
+        ("record_type", "type"),
+        ("unsigned long", "size"),
+
+]
+
 oblivion_parser.typedef("record_type", "4s")
 
 oblivion_parser.register("record_header", RecordHeader)
