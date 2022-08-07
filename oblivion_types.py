@@ -31,6 +31,8 @@ class DialogTypes(enum.Enum):
     DETECTION=4
     SERVICE=5
     MISCELLANEOUS=6
+    WTF=513
+    WTF2=257
 
 
 class ResponseFlags(enum.Enum):
@@ -81,7 +83,7 @@ def formid(bstr):
     return s, r, rem
 
 
-header = binaryparse.record_parser("header", (
+record_header = binaryparse.record_parser("record_header", (
     ("type", record_type),
     ("size", unsigned_long),
     ("flags", header_flags),
@@ -142,10 +144,14 @@ def record_subrecords(type, definition):
         subrecord_type(type, subrecord_t, subrecord_definition)
 
 record_namedtuple = namedtuple('record', ["header", "subrecords"])
-def record(bstr):
-    s, h, r = header(bstr)
-    if not s:
-        return s, None, b''
+def record(bstr, header=None):
+    if header is None:
+        s, h, r = record_header(bstr)
+        if not s:
+            return s, None, b''
+    else:
+        h = header
+        r = bstr
 
     bstr = r
 
@@ -165,31 +171,46 @@ def record(bstr):
     return True, result, bstr[h.size:]
 
 
-def record_or_grup(bstr):
+def record_or_grup_header(bstr):
     s, t, _ = record_type(bstr)
     assert(s)
 
     if t != 'GRUP':
-        return header(bstr)
+        return record_header(bstr)
     else:
         return grup_header(bstr)
+
+
+def record_or_grup(bstr, header=None):
+    if header is None:
+        s, t, _ = record_type(bstr)
+        assert(s)
+    else:
+        t = header.type
+
+    if t == 'GRUP':
+        return grup(bstr, header=header)
+    else:
+        return record(bstr, header=header)
 
 
 grup_namedtuple = namedtuple("grup", ("header", "records"))
 
 
-def grup(bstr):
-    s, h, _ = grup_header(bstr)
-
-    if not s:
-        return s, None, b''
-
-    data = bstr[20:h.size]
+def grup(bstr, header=None):
+    if header is None:
+        s, h, _ = grup_header(bstr)
+        if not s:
+            return s, None, b''
+        data = bstr[20:h.size]
+    else:
+        h = header
+        data = bstr
 
     records = []
 
     while len(data) > 0:
-        s, r, data = record(data)
+        s, r, data = record_or_grup(data)
         if not s:
             return s, None, b''
         records.append(r)

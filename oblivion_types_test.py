@@ -58,7 +58,6 @@ class TestOblivionParse(unittest.TestCase):
 
         self.assertTrue(s)
         self.assertEqual(r.header.type, 'INFO')
-        print(r.header.formid)
         self.assertEqual(r.subrecords[3].data.responseText, "You're too kind.")
         self.assertEqual(r.subrecords[4].data.actorNotes, "")
 
@@ -106,8 +105,30 @@ class TestOblivionParse(unittest.TestCase):
         self.assertTrue(s)
         self.assertEqual(b, b'END')
 
-        print(g)
+    def test_record_parse_no_header(self):
+        packed = b''\
+            b'DIAL>\x00\x00\x00\x00\x00\x00\x00\xac\x00\x00\x00\x1c\x1f\x18\x00'\
+            b'EDID\x0b\x00ADMIRELIKE\x00'\
+            b'QSTI\x04\x00"\xe7\x01\x00'\
+            b'QSTI\x04\x00\x02\x06\x01\x00'\
+            b'FULL\x0c\x00ADMIRE_LIKE\x00'\
+            b'DATA\x01\x00\x03END'
 
+        s, h, r = record_header(packed)
+        self.assertTrue(s)
+        self.assertEqual(h.type, 'DIAL')
+
+        s, r, b = record(r, header=h)
+
+        self.assertTrue(s)
+        self.assertEqual(r.header.type, 'DIAL')
+        self.assertEqual(r.subrecords[0].type, 'EDID')
+        self.assertEqual(r.subrecords[0].data.editorId, 'ADMIRELIKE')
+        self.assertEqual(r.subrecords[1].type, 'QSTI')
+        self.assertEqual(r.subrecords[2].type, 'QSTI')
+        self.assertEqual(r.subrecords[3].type, 'FULL')
+        self.assertEqual(r.subrecords[4].type, 'DATA')
+        self.assertEqual(b, b'END')
 
 if __name__ == "__main__":
     unittest.main()
