@@ -1,2 +1,4 @@
 *.esm
 *.esp
+__pycache__
+
