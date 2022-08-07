@@ -1,6 +1,7 @@
 import sys
 
-from oblivion_types import header, top_level, dial, info
+from oblivion_types import header, record_or_grup, dial, info
+
 
 FILENAME = sys.argv[1]
 
@@ -11,7 +12,7 @@ with open(FILENAME, 'rb') as f:
         if not header_bytes:
             break
 
-        s, result, rest = top_level(header_bytes)
+        s, result, rest = record_or_grup(header_bytes)
 
         assert(s)
 
@@ -28,7 +29,7 @@ with open(FILENAME, 'rb') as f:
         data = f.read(result.size - 20)
 
         while data:
-            s, hdr, data = top_level(data)
+            s, hdr, data = record_or_grup(data)
             assert(s)
 
             print(hdr)

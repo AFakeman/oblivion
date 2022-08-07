@@ -53,7 +53,7 @@ class EmotionType(enum.Enum):
     SURPRISE = 6
 
 
-zstr = binaryparse.zstr_parser('cp1252')
+zstring = binaryparse.zstr_parser('cp1252')
 record_type = binaryparse.str_parser(4)
 grup_label = binaryparse.struct_parser('<4s')
 unsigned_long = binaryparse.struct_parser("<L")
@@ -66,7 +66,7 @@ byte = binaryparse.struct_parser("<b")
 unsigned_byte = binaryparse.struct_parser("<B")
 
 header_flags = binaryparse.flag_parser(unsigned_long, HeaderFlags)
-dialog_type = binaryparse.enum_parser(unsigned_short, DialogTypes)
+dialog_type = binaryparse.enum_parser(unsigned_byte, DialogTypes)
 response_flags = binaryparse.flag_parser(byte, ResponseFlags)
 emotion_type = binaryparse.flag_parser(long_t, EmotionType)
 
@@ -102,180 +102,85 @@ subrecord_header = binaryparse.record_parser("subrecord_header", (
 ))
 
 
-def subrecord(type, fields):
-    rp = binaryparse.record_parser(type, fields)
+subrecords = {}
+subrecord_namedtuple = namedtuple('subrecord', ["type", "data"])
 
-    def parser(bstr):
-        print(type)
-        s, hdr, bstr = subrecord_header(bstr)
-        if not s:
-            return False, None, bstr
 
-        print(type)
-        print(hdr.type)
-        assert(hdr.type == type.upper())
+def subrecord(record_type, bstr):
+    s, h, r = subrecord_header(bstr)
+    if not s:
+        return s, None, bstr
 
-        s, data, rem = rp(bstr[:hdr.size])
-        if not s:
-            return False, None, bstr
-        assert(rem == b'')
+    parser_name = "{}_{}".format(record_type, h.type)
 
-        return True, data, bstr[hdr.size:]
+    if parser_name not in subrecords:
+        result = subrecord_namedtuple._make((h.type, r[:h.size]))
+        return True, result, r[h.size:]
+
+    bstr = r
+
+    s, r, b = subrecords[parser_name](bstr)
+    if not s:
+        return s, None, bstr
+    result = subrecord_namedtuple._make((h.type, r))
+
+    bstr = b
+
+    return True, result, bstr
+
+
+def subrecord_type(record_type, type, definition):
+    parser_name = "{}_{}".format(record_type, type)
+    parser = binaryparse.record_parser(parser_name, definition)
+    subrecords[parser_name] = parser
     return parser
 
 
-def single_subrecord(type, record_type, definition, optional=False):
-    subrecord_parser = binaryparse.record_parser("{}_{}".format(record_type, type), definition)
-    def parser(bstr):
-        s, hdr, rem = subrecord_header(bstr)
-        if not s:
-            return False, None, bstr
-
-        if hdr.type != type.upper():
-            if not optional:
-                print("Expected {}, got {}".format(type, hdr.type))
-            return optional, None, bstr
-
-        return subrecord_parser(rem)
-
-    return parser
-
-
-def repeating_subrecord(type, record_type, definition):
-    subrecord_parser = single_subrecord(type, record_type, definition, True)
-    def parser(bstr):
-        result = []
-
-        while True:
-            s, r, rem = subrecord_parser(bstr)
-            if not s:
-                return False, None, bstr
-
-            if r is None:
-                return True, result, bstr
-
-            bstr = rem
-            result.append(r)
-    return parser
-
-
-def record(type, definition):
-    parsers = []
-    for subrec_type, count, subrec_definition in definition:
-        count = SubrecordCount(count)
-        if count == SubrecordCount.REQUIRED:
-            parser = single_subrecord(subrec_type, type, subrec_definition, False)
-        elif count == SubrecordCount.OPTIONAL:
-            parser = single_subrecord(subrec_type, type, subrec_definition, True)
-        elif count == SubrecordCount.REPEATING:
-            parser = repeating_subrecord(subrec_type, type, subrec_definition)
-        else:
-            raise ValueError("Unknown count parameter: {}".format(count))
-        parsers.append((subrec_type, parser))
-
-    return binaryparse.record_parser(type, parsers)
-
-
-dial = record("dial", (
-    ("edid", "-", (
-        ("editorId", zstr),
-    )),
-    ("qsti", "*", (
-        ("quests", formid),
-    )),
-    ("qstr", "*", (
-        ("quests", formid),
-    )),
-    ("full", "-", (
-        ("quests", zstr),
-    )),
-    ("data", "-", (
-        ("dialType", byte),
-    )),
+subrecord_type("DIAL", "EDID", (
+    ("editorId", zstring),
 ))
 
-
-info_data = single_subrecord("data", "info", (
-    ("dialogType", dialog_type),
-    ("dialogFlags", response_flags),
-))
-
-info_qsti = single_subrecord("qsti", "info", (
+subrecord_type("DIAL", "QSTI", (
     ("quests", formid),
 ))
 
-info_pnam = single_subrecord("pnam", "info", (
+subrecord_type("DIAL", "QSTR", (
     ("quests", formid),
-), True)
-
-info_trdt = single_subrecord("trdt", "info", (
-    ("emotion_type", emotion_type),
-    ("emotion_value", long_t),
-    ("unknown", binaryparse.skip_parser(4)),
-    ("response_number", unsigned_byte),
-    ("unknown2", binaryparse.skip_parser(3)),
-), True)
-
-info_nam1 = single_subrecord("nam1", "info", (
-    ("response_text", zstr),
-), True)
-
-info_nam2 = single_subrecord("nam2", "info", (
-    ("actor_notes", zstr),
-), True)
-
-info_namedtuple = namedtuple("info", (
-    "data",
-    "qsti",
-    "pnam",
-    "trdt",
-    "nam1",
-    "nam2",
 ))
 
+subrecord_type("DIAL", "FULL", (
+    ("fullName", zstring),
+))
 
-info_records = (
-        info_data,
-        info_qsti,
-        info_pnam,
-)
+subrecord_type("DIAL", "DATA", (
+    ("dialType", dialog_type),
+))
 
+record_namedtuple = namedtuple('record', ["header", "subrecords"])
+def record(bstr):
+    s, h, r = header(bstr)
+    if not s:
+        return s, None, b''
 
-info_funni_records = (
-        info_trdt,
-        info_nam1,
-        info_nam2,
-)
+    bstr = r
 
+    record_data = bstr[:h.size]
+    subrecords = []
 
-def info(bstr):
-    result = []
-    for rec in info_records:
-        s, r, rem = rec(bstr)
+    while len(record_data) > 0:
+        s, sub, r = subrecord(h.type, record_data)
         if not s:
-            return s, r, bstr
-        bstr = rem
-        result.append(r)
-    lists = [[] for rec in info_funni_records]
-    while True:
-        br = False
-        idx = 0
-        for rec in info_funni_records:
-            s, r, rem = rec(bstr)
-            if not s:
-                return s, r, bstr
-            if r is None:
-                br = True
-                break
-            lists[idx].append(r)
-            bstr = rem
-            idx += 1
-        if br:
-            break
-    return True, info_namedtuple._make(result + lists), bstr
+            return s, None, b''
+
+        subrecords.append(sub)
+        record_data = r
+
+    result = record_namedtuple._make((h, tuple(subrecords)))
+
+    return True, result, bstr[h.size:]
 
 
-def top_level(bstr):
+def record_or_grup(bstr):
     s, t, _ = record_type(bstr)
     assert(s)
 
