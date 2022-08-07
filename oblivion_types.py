@@ -67,6 +67,7 @@ unsigned_byte = binaryparse.struct_parser("<B")
 
 header_flags = binaryparse.flag_parser(unsigned_long, HeaderFlags)
 dialog_type = binaryparse.enum_parser(unsigned_byte, DialogTypes)
+dialog_type_short = binaryparse.enum_parser(unsigned_short, DialogTypes)
 response_flags = binaryparse.flag_parser(byte, ResponseFlags)
 emotion_type = binaryparse.flag_parser(long_t, EmotionType)
 
@@ -84,7 +85,7 @@ header = binaryparse.record_parser("header", (
     ("type", record_type),
     ("size", unsigned_long),
     ("flags", header_flags),
-    ("formid", unsigned_long),
+    ("formid", formid),
     ("m", unsigned_long),
 ))
 
@@ -136,25 +137,9 @@ def subrecord_type(record_type, type, definition):
     return parser
 
 
-subrecord_type("DIAL", "EDID", (
-    ("editorId", zstring),
-))
-
-subrecord_type("DIAL", "QSTI", (
-    ("quests", formid),
-))
-
-subrecord_type("DIAL", "QSTR", (
-    ("quests", formid),
-))
-
-subrecord_type("DIAL", "FULL", (
-    ("fullName", zstring),
-))
-
-subrecord_type("DIAL", "DATA", (
-    ("dialType", dialog_type),
-))
+def record_subrecords(type, definition):
+    for subrecord_t, subrecord_definition in definition:
+        subrecord_type(type, subrecord_t, subrecord_definition)
 
 record_namedtuple = namedtuple('record', ["header", "subrecords"])
 def record(bstr):
@@ -188,3 +173,49 @@ def record_or_grup(bstr):
         return header(bstr)
     else:
         return grup_header(bstr)
+
+
+record_subrecords("DIAL", (
+    ("EDID", (
+        ("editorId", zstring),
+    )),
+    ("QSTI", (
+        ("quests", formid),
+    )),
+    ("QSTR", (
+        ("quests", formid),
+    )),
+    ("FULL", (
+        ("fullName", zstring),
+    )),
+    ("DATA", (
+        ("dialType", dialog_type),
+    )),
+))
+
+
+record_subrecords("INFO", (
+    ("DATA", (
+        ("dialogType", dialog_type_short),
+        ("dialogFlags", response_flags),
+    )),
+    ("QSTI", (
+        ("questId", formid),
+    )),
+    ("PNAM", (
+        ("previousId", formid),
+    )),
+    ("TRDT", (
+        ("emotionType", emotion_type),
+        ("emotionValue", long_t),
+        ("unknown", binaryparse.skip_parser(4)),
+        ("responseNumber", unsigned_byte),
+        ("unknown2", binaryparse.skip_parser(3)),
+    )),
+    ("NAM1", (
+        ("responseText", zstring),
+    )),
+    ("NAM2", (
+        ("actorNotes", zstring),
+    )),
+))
