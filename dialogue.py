@@ -48,7 +48,7 @@ def dialogue_quests(group):
             assert(topic is not None)
             idx = 1
             for response in responses:
-                key = "{}_{}_{}_{}".format(qsti, topic, info.header.formid[2:], idx)
+                key = "{}_{}_{}_{}".format(qsti, topic, info.header.formid[2:].upper(), idx)
                 result[key] = response
                 idx += 1
     return result
