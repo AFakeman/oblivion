@@ -98,4 +98,5 @@ for key, response in responses.items():
     filename = "{}_{}".format(quest_name, rem)
     filenames[filename] = response
 
-pprint(filenames)
+for filename, response in filenames.items():
+    print("{}@{}".format(filename, response))
