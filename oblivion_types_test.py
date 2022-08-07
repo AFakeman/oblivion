@@ -24,6 +24,15 @@ class TestOblivionParse(unittest.TestCase):
         self.assertEqual(r.type, 'EDID')
         self.assertEqual(r.data.editorId, 'ADMIRELIKE')
 
+    def test_subrecord_parse_werid(self):
+        packed = b'DATA\x02\x00\x01\x00QSTI'
+
+        s, r, b = subrecord("DIAL", packed)
+
+        self.assertTrue(s)
+        self.assertEqual(r.type, 'DATA')
+        self.assertEqual(b, b'QSTI')
+
     def test_record_parse(self):
         packed = b''\
             b'DIAL>\x00\x00\x00\x00\x00\x00\x00\xac\x00\x00\x00\x1c\x1f\x18\x00'\

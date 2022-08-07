@@ -122,14 +122,12 @@ def subrecord(record_type, bstr):
 
     bstr = r
 
-    s, r, b = subrecords[parser_name](bstr)
+    s, r, _ = subrecords[parser_name](bstr)
     if not s:
         return s, None, bstr
     result = subrecord_namedtuple._make((h.type, r))
 
-    bstr = b
-
-    return True, result, bstr
+    return True, result, bstr[h.size:]
 
 
 def subrecord_type(record_type, type, definition):
