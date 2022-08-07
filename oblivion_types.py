@@ -175,6 +175,31 @@ def record_or_grup(bstr):
         return grup_header(bstr)
 
 
+grup_namedtuple = namedtuple("grup", ("header", "records"))
+
+
+def grup(bstr):
+    s, h, _ = grup_header(bstr)
+
+    if not s:
+        return s, None, b''
+
+    data = bstr[20:h.size]
+
+    records = []
+
+    while len(data) > 0:
+        s, r, data = record(data)
+        if not s:
+            return s, None, b''
+        records.append(r)
+
+    result = grup_namedtuple._make((h, records))
+
+    return True, result, bstr[h.size:]
+
+
+
 record_subrecords("DIAL", (
     ("EDID", (
         ("editorId", zstring),
