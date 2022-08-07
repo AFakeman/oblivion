@@ -263,3 +263,13 @@ record_subrecords("INFO", (
         ("actorNotes", zstring),
     )),
 ))
+
+record_subrecords("QUST", (
+
+    ("EDID", (
+        ("editorId", zstring),
+    )),
+    ("FULL", (
+        ("questName", zstring),
+    )),
+))
